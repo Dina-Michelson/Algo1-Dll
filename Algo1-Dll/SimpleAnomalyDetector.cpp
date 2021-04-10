@@ -91,7 +91,7 @@ float SimpleAnomalyDetector::findThreshold(Point** ps, size_t len, Line rl) {
     }
 }*/
 
-void SimpleAnomalyDetector::learnNormal(const TimeSeries& ts) {
+/*void SimpleAnomalyDetector::learnNormal(const TimeSeries& ts) {
     vector<string> keys = ts.gettAttributes();
     for (int i = 0; i < keys.size() - 1; i++) {
         for (int j = i + 1; j < keys.size(); j++) {
@@ -120,6 +120,110 @@ void SimpleAnomalyDetector::learnNormal(const TimeSeries& ts) {
             cf.push_back(c_f);
         }
     }
+}*/
+
+/*void SimpleAnomalyDetector::learnNormal(const TimeSeries& ts) {
+    for (int i = 0; i < ts.getFeatures().size() - 1; i++) {
+        for (int j = i + 1; j < ts.getFeatures().size(); j++) {
+            // We will build a correlation struct for every pair of features
+            correlatedFeatures corr;
+            corr.feature1 = ts.getFeatures()[i]; // The name of the first feature
+            corr.feature2 = ts.getFeatures()[j]; // The name of the second feature
+            // Compute the correlation of these two features
+            corr.corrlation = getCorrelation(corr.feature1, corr.feature2, ts);
+            // If the correlation is less than 0.9, we do not consider the features
+            // "correlated enough"
+            float minCorrelation = 0.9;
+            if (abs(corr.corrlation) >= minCorrelation) {
+
+                // Compute the regression line
+                corr.lin_reg = getRegressionLine(corr.feature1, corr.feature2, ts);
+                // We'll calculate the maximum distance of any point from the regression line.
+                // This maximum distance will become the threshold (max deviation from norm)
+                corr.threshold = getMaxDistFromLine(corr.lin_reg, corr.feature1, corr.feature2, ts);
+                cf.push_back(corr);
+            }
+
+        }
+
+    }
+}*/
+
+void SimpleAnomalyDetector::learnNormal(const TimeSeries& ts) {
+    vector<string> atts = ts.gettAttributes();
+    size_t len = ts.getRowSize();
+    
+    for (size_t i = 0; i < atts.size(); i++) {
+        string f1 = atts[i];
+        float max = 0;
+        size_t jmax = 0;
+        for (size_t j = i + 1; j < atts.size(); j++) { 
+            float p = getCorrelation(f1, atts[j],ts) ;
+            if (p > max) {
+                max = p;
+                jmax = j;
+            }
+        }
+        string f2 = atts[jmax];
+        Point** ps = toPoints(ts.getAttributeData(f1), ts.getAttributeData(f2));
+
+        learnHelper(ts, max, f1, f2, ps);
+
+        // delete points
+        for (size_t k = 0; k < len; k++)
+            delete ps[k];
+        delete[] ps;
+    }
+}
+
+float SimpleAnomalyDetector::getCorrelation(string& f1, string& f2, const TimeSeries& ts) {
+    // Get the vector that contains the data of the first feature
+    vector<float> colvector1 = ts.getMap()[f1];
+    float* f1vals = &colvector1[0]; // Access the internal array of the vector
+    // Get the vector that contains the data of the second feature
+    vector<float> colvector2 = ts.getMap()[f2];
+    float* f2vals = &colvector2[0]; // Access the internal array of the vector
+    // Get the length of the vectors containing the features' data
+    int size = colvector1.size();
+    // Compute the correlation of these two features
+    return pearson(f1vals, f2vals, size);
+}
+
+Line SimpleAnomalyDetector::getRegressionLine(string& f1, string& f2, const TimeSeries& ts) {
+    // Get the vector that contains the data of the first feature
+    vector<float> colvector1 = ts.getMap()[f1];
+    float* f1vals = &colvector1[0]; // Access the internal array of the vector
+    // Get the vector that contains the data of the second feature
+    vector<float> colvector2 = ts.getMap()[f2];
+    float* f2vals = &colvector2[0]; // Access the internal array of the vector
+    // Get the length of the vectors containing the features' data
+    int size = colvector1.size();
+    // Since we've gotten to here, we know that the correlation >= 0.9
+    // We have an array of x-coordinates, and an array of y-coordinates.
+    // Now we'll combine them into a vector of Points
+    vector<Point*> points = floatsToPoints(colvector1, colvector2);
+    // We'll use this vector of points to calculate the line of regression
+    Line reg = linear_reg(&points[0], size);
+    // Free memory in points vector
+    for (int i = 0; i < points.size(); i++) {
+        delete points[i];
+    }
+    return reg;
+}
+
+float SimpleAnomalyDetector::getMaxDistFromLine(Line linreg, string& f1, string& f2, const TimeSeries& ts) {
+    // Get the vector that contains the data of the first feature
+    vector<float> colvector1 = ts.getMap()[f1];
+    // Get the vector that contains the data of the second feature
+    vector<float> colvector2 = ts.getMap()[f2];
+    // Get the length of the vectors containing the features' data
+    int size = colvector1.size();
+    float maxDist = 0;
+    for (int k = 0; k < size; k++) {
+        Point point(colvector1[k], colvector2[k]);
+        maxDist = max(dev(point, linreg), maxDist);
+    }
+    return maxDist;
 }
 
 //function for accepting 2 vectors of floats and returning a vector of pointers to points
@@ -172,11 +276,9 @@ int SimpleAnomalyDetector::getSize() {
 }
 
 void SimpleAnomalyDetector::mostCorrelatedFeature(const char* CSVfileName, char** l, int size, const char* att, char* s) {
-    cout << "went in 1" << endl;
     TimeSeries ts(CSVfileName, l, size);
     learnNormal(ts);
     int sizeOfcf = getSize();
-    char c[] = "no feature was found";
     for (int i = 0; i < sizeOfcf; i++) {
         char* temp;
         temp = &cf[i].feature1[0];
@@ -189,14 +291,12 @@ void SimpleAnomalyDetector::mostCorrelatedFeature(const char* CSVfileName, char*
         temp2 = &cf[i].feature2[0];
         cout << temp2 << endl;
         if (!strcmp(temp2, att)) {
-            cout << "went in 6" << endl;
             //word = &cf[i].feature1[0];
             std::copy(cf[i].feature1.begin(), cf[i].feature1.end(), s);
             s[cf[i].feature1.size()] = '\0';
             return;
         }
         else {
-            cout << "went in 7" << endl;
             continue;
         }
     }
@@ -210,9 +310,29 @@ void SimpleAnomalyDetector::trying(char* buffer) {
     cout << buffer << " is the most correlated feature" << endl;
 }
 
-int returnNum() {
-    int x = 6;
-    return x;
+void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** l, int size/*, const char* oneWay, const char* otherWay*/, float* f) {
+    TimeSeries newTs(CSVfileName, l, size);
+    cout << "went in getAnomalyTimeSteps" << endl;
+    /*vector< AnomalyReport> ar = detect(newTs);
+    vector<float> floatVector;
+    int arSize = ar.size();
+    for (int i = 0; i < arSize; i++) {
+        char* temp;
+        temp = &ar[i].description[0];
+        if (!strcmp(temp, oneWay) || !strcmp(temp, otherWay)) {
+            floatVector.push_back(ar[i].timeStep);
+        }
+    }
+    if (floatVector.size() != 0) {
+        int k = 0;
+        for (int j = floatVector.size() - 1; j > -1; j--) {
+            f[k] = floatVector[j];
+            k++;
+        }
+    }
+    f[floatVector.size()] = 9090909090909;*/
+    f[0] = 9090909090909;
+    return;
 }
 
 extern "C" _declspec(dllexport) void* CreateSAD() {
@@ -223,9 +343,11 @@ extern "C" __declspec(dllexport) void MostCorrelatedFeature(SimpleAnomalyDetecto
     return sad->mostCorrelatedFeature(CSVfileName,l,size, att, s);
 }
 
-extern "C" __declspec(dllexport) int returnANum() {
-    return returnNum();
+extern "C" __declspec(dllexport) void getTimeSteps(SimpleAnomalyDetector * sad, const char* CSVfileName, char** l, int size/*, const char* oneway, const char* otherway*/, float* f) {
+    return sad->getAnomalyTimeSteps(CSVfileName, l, size/*, oneway, otherway*/, f);
 }
+
+
 
 extern "C" _declspec(dllexport) void Analysis_AlgorithmType(SimpleAnomalyDetector* sad, char* buffer) {
     return sad->trying(buffer);

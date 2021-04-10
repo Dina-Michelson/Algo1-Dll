@@ -42,6 +42,7 @@ public:
 	}
 	void mostCorrelatedFeature(const char* CSVfileName, char** l, int size, const char* att, char* s);
 	void trying(char* buffer);
+	void getAnomalyTimeSteps(const char* CSVfileName, char** l, int size/*, const char* oneWay, const char* otherWay*/, float* f);
 	// helper methods
 protected:
 	vector<Point*> floatsToPoints(vector <float> x, vector <float> y);
@@ -50,7 +51,10 @@ protected:
 	Point** toPoints(vector<float> x, vector<float> y);
 	float findThreshold(Point** ps, size_t len, Line rl);
 	//char* mostCorrelatedFeature(const char* CSVfileName, const char* att);
-	
+	//ronia helper methods
+	Line getRegressionLine(string& f1, string& f2, const TimeSeries& ts);
+	float getMaxDistFromLine(Line linreg, string& f1, string& f2, const TimeSeries& ts);
+	float getCorrelation(string& f1, string& f2, const TimeSeries& ts);
 	int getSize();
 };
 

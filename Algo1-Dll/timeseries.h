@@ -82,6 +82,10 @@ public:
 		return map<string, vector<float>>(ts);
 	}
 
+	vector<string> getFeatures() const {
+		return this->atts;
+	}
+
 	~TimeSeries() {
 
 	}
