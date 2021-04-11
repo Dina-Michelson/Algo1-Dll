@@ -111,7 +111,7 @@ public:
 	}
 };
 
-extern "C" __declspec(dllexport) void findLinReg(TimeSeries * ts, float& a, float& b, const char* attA, const char* attB) {
+extern "C" __declspec(dllexport) void findLinRegAlgo1(TimeSeries * ts, float& a, float& b, const char* attA, const char* attB) {
 	return ts->find_lin_reg(a, b, attA, attB);
 }
 
