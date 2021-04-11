@@ -86,11 +86,34 @@ public:
 		return this->atts;
 	}
 
+	void find_lin_reg(float& a, float& b, const char* attA, const char* attB) {
+		vector<float> v1 = getAttributeData(attA);
+		vector<float> v2 = getAttributeData(attB);
+		vector<Point*> pointv = floatsToPoints(v1, v2);
+		Line l = linear_reg(pointv.data(), v1.size());
+		a = l.a;
+		b = l.b;
+	}
+
+	vector<Point*> floatsToPoints(vector <float> x, vector <float> y) {
+		vector<Point*> points_vector;
+		//creating a vector of pointers to points to send to lin_reg
+		int s = x.size();
+		for (int i = 0; i < s; i++) {
+			Point* p = new Point(x[i], y[i]);
+			points_vector.push_back(p);
+		}
+		return points_vector;
+	}
+
 	~TimeSeries() {
 
 	}
 };
 
+extern "C" __declspec(dllexport) void findLinReg(TimeSeries * ts, float& a, float& b, const char* attA, const char* attB) {
+	return ts->find_lin_reg(a, b, attA, attB);
+}
 
 
 #endif /* TIMESERIES_H_ */
