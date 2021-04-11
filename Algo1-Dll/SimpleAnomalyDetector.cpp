@@ -14,7 +14,6 @@
 
 using namespace std;
 SimpleAnomalyDetector::SimpleAnomalyDetector() {
-    cout << "SimpleAnomalyDetector created" << endl;
 	threshold = 0.9;
 
 }
@@ -41,113 +40,7 @@ float SimpleAnomalyDetector::findThreshold(Point** ps, size_t len, Line rl) {
 	return max;
 }
 
-/*void SimpleAnomalyDetector::learnNormal(const TimeSeries& ts) {
-    TimeSeries timeSeries = ts;
-    map<string, vector<float>> tmpMap = timeSeries.getMap();
-    float tmp, tmpMax;
-    int size = tmpMap.begin()->second.size();
-    /* We run a loop on the categories, and then another loop
-     * on the categories to the right of the first one.
-     */
-    /*for (auto itr = tmpMap.begin(); itr != tmpMap.end(); itr++) {//outer loop
-        tmpMax = 0;
-        string f2;
-        for (auto itr2 = itr; itr2 != tmpMap.end(); itr2++) {//inner loop
-            if (itr2 == itr) {
-                continue;
-            }
-            tmp = abs(pearson(itr->second.data(), itr2->second.data(), size));
-            if (tmp > tmpMax) {//to get maximum correlation
-                tmpMax = tmp;
-                f2 = itr2->first;
-            }
-        }
-        if (tmpMax >= 0.9) {//check if max correlation > threshold (0.5) for circle
-            correlatedFeatures tmpCf;
-            tmpCf.feature1 = itr->first;
-            tmpCf.feature2 = f2;
-            tmpCf.corrlation = tmpMax;
-            vector<Point*> points;
-            for (int i = 0; i < size; i++) {
-                points.push_back(new Point(tmpMap[tmpCf.feature1][i], tmpMap[tmpCf.feature2][i]));
-            }
-            Point** pointsArr = points.data();
-        
-            tmpCf.lin_reg = linear_reg(pointsArr, size);
-            tmpMax = 0;
-            for (int i = 0; i < size; i++) {
-                float tmpDev = dev(pointsArr[i][0], tmpCf.lin_reg);
-                if (tmpDev > tmpMax) {//getting max threshold for dev of individual points in the vector
-                    tmpMax = tmpDev;
-                }
-         
-            }
-            tmpCf.threshold = tmpMax;
-            cf.push_back(tmpCf);
-            for (int i = 0; i < size; i++) {
-                points.push_back(new Point(tmpMap[tmpCf.feature1][i], tmpMap[tmpCf.feature2][i]));
-            }
-        }
-    }
-}*/
 
-/*void SimpleAnomalyDetector::learnNormal(const TimeSeries& ts) {
-    vector<string> keys = ts.gettAttributes();
-    for (int i = 0; i < keys.size() - 1; i++) {
-        for (int j = i + 1; j < keys.size(); j++) {
-            int size = ts.getMap()[keys[0]].size();
-            vector<float> xVector = ts.getMap()[keys[i]];
-            vector<float> yVector = ts.getMap()[keys[j]];
-            float* xCoords = xVector.data();
-            float* yCoords = yVector.data();
-            correlatedFeatures c_f;
-            //build the struct of the correlatedFeature
-            c_f.feature1 = keys[i];
-            c_f.feature2 = keys[j];
-            c_f.corrlation = pearson(xCoords, yCoords, size);
-            // Discard correlations below 90%
-            if (abs(c_f.corrlation) < 0.9) {
-                continue;
-            }
-            vector<Point*> graph = floatsToPoints(xVector, yVector);
-            c_f.lin_reg = linear_reg(graph.data(), size);
-            c_f.threshold = 0;
-            for (int k = 0; k < graph.size(); k++) {
-                float newThresh = abs(c_f.lin_reg.f(xCoords[k]) - yCoords[k]);
-                c_f.threshold = max(c_f.threshold, newThresh);
-                delete graph[k];
-            }
-            cf.push_back(c_f);
-        }
-    }
-}*/
-
-/*void SimpleAnomalyDetector::learnNormal(const TimeSeries& ts) {
-    for (int i = 0; i < ts.getFeatures().size() - 1; i++) {
-        for (int j = i + 1; j < ts.getFeatures().size(); j++) {
-            // We will build a correlation struct for every pair of features
-            correlatedFeatures corr;
-            corr.feature1 = ts.getFeatures()[i]; // The name of the first feature
-            corr.feature2 = ts.getFeatures()[j]; // The name of the second feature
-            // Compute the correlation of these two features
-            corr.corrlation = getCorrelation(corr.feature1, corr.feature2, ts);
-            // If the correlation is less than 0.9, we do not consider the features
-            // "correlated enough"
-            float minCorrelation = 0.9;
-            if (abs(corr.corrlation) >= minCorrelation) {
-
-                // Compute the regression line
-                corr.lin_reg = getRegressionLine(corr.feature1, corr.feature2, ts);
-                // We'll calculate the maximum distance of any point from the regression line.
-                // This maximum distance will become the threshold (max deviation from norm)
-                corr.threshold = getMaxDistFromLine(corr.lin_reg, corr.feature1, corr.feature2, ts);
-                cf.push_back(corr);
-            }
-
-        }
-
-    }
-}*/
 
 void SimpleAnomalyDetector::learnNormal(const TimeSeries& ts) {
     vector<string> atts = ts.gettAttributes();
@@ -289,7 +182,6 @@ void SimpleAnomalyDetector::mostCorrelatedFeature(const char* CSVfileName, char*
         }
         char* temp2;
         temp2 = &cf[i].feature2[0];
-        cout << temp2 << endl;
         if (!strcmp(temp2, att)) {
             //word = &cf[i].feature1[0];
             std::copy(cf[i].feature1.begin(), cf[i].feature1.end(), s);
@@ -310,12 +202,12 @@ void SimpleAnomalyDetector::trying(char* buffer) {
     cout << buffer << " is the most correlated feature" << endl;
 }
 
-void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** l, int size/*, const char* oneWay, const char* otherWay*/, float* f) {
+void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** l, int size, const char* oneWay, const char* otherWay, char* f) {
     TimeSeries newTs(CSVfileName, l, size);
-    cout << "went in getAnomalyTimeSteps" << endl;
-    /*vector< AnomalyReport> ar = detect(newTs);
+    vector< AnomalyReport> ar = detect(newTs);
     vector<float> floatVector;
     int arSize = ar.size();
+    string temperary;
     for (int i = 0; i < arSize; i++) {
         char* temp;
         temp = &ar[i].description[0];
@@ -325,13 +217,17 @@ void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** 
     }
     if (floatVector.size() != 0) {
         int k = 0;
-        for (int j = floatVector.size() - 1; j > -1; j--) {
-            f[k] = floatVector[j];
-            k++;
+        for (int j = 0; j < floatVector.size(); j++) {
+            float temp1 = floatVector[j];
+            string temp(to_string(temp1));
+            //char* temp2 = &temp[0];
+            temperary += temp;
+            temperary += ' ';
         }
     }
-    f[floatVector.size()] = 9090909090909;*/
-    f[0] = 9090909090909;
+    std::copy(temperary.begin(), temperary.end(), f);
+    //f = &temperary[0];
+    f[temperary.size()-1] = '\0';
     return;
 }
 
@@ -343,8 +239,8 @@ extern "C" __declspec(dllexport) void MostCorrelatedFeature(SimpleAnomalyDetecto
     return sad->mostCorrelatedFeature(CSVfileName,l,size, att, s);
 }
 
-extern "C" __declspec(dllexport) void getTimeSteps(SimpleAnomalyDetector * sad, const char* CSVfileName, char** l, int size/*, const char* oneway, const char* otherway*/, float* f) {
-    return sad->getAnomalyTimeSteps(CSVfileName, l, size/*, oneway, otherway*/, f);
+extern "C" __declspec(dllexport) void getTimeSteps(SimpleAnomalyDetector * sad, const char* CSVfileName, char** l, int size, const char* oneway, const char* otherway, char* f) {
+    return sad->getAnomalyTimeSteps(CSVfileName, l, size, oneway, otherway, f);
 }
 
 
