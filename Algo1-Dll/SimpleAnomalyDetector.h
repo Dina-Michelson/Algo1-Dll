@@ -41,7 +41,6 @@ public:
 		this->threshold = threshold;
 	}
 	void mostCorrelatedFeature(const char* CSVfileName, char** l, int size, const char* att, char* s);
-	void trying(char* buffer);
 	void getAnomalyTimeSteps(const char* CSVfileName, char** l, int size, const char* oneWay, const char* otherWay, char* f);
 	// helper methods
 protected:

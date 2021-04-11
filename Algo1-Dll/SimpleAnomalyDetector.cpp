@@ -192,15 +192,8 @@ void SimpleAnomalyDetector::mostCorrelatedFeature(const char* CSVfileName, char*
             continue;
         }
     }
-    cout << "no most correlated feature was found" << endl;
 }
 
-void SimpleAnomalyDetector::trying(char* buffer) {
-    std::string str = "linear_reg";
-    std::copy(str.begin(), str.end(), buffer);
-    buffer[str.size()] = '\0';
-    cout << buffer << " is the most correlated feature" << endl;
-}
 
 void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** l, int size, const char* oneWay, const char* otherWay, char* f) {
     TimeSeries newTs(CSVfileName, l, size);
@@ -220,10 +213,15 @@ void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** 
         for (int j = 0; j < floatVector.size(); j++) {
             float temp1 = floatVector[j];
             string temp(to_string(temp1));
-            //char* temp2 = &temp[0];
             temperary += temp;
             temperary += ' ';
         }
+    }
+    else {
+        string ns = "no timesteps";
+        std::copy(ns.begin(), ns.end(), f);
+        f[ns.size()] = '\0';
+        return;
     }
     std::copy(temperary.begin(), temperary.end(), f);
     //f = &temperary[0];
@@ -231,20 +229,16 @@ void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** 
     return;
 }
 
-extern "C" _declspec(dllexport) void* CreateSAD() {
+extern "C" _declspec(dllexport) void* CreateSADAlgo1() {
     return (void*) new SimpleAnomalyDetector();
 }
 
-extern "C" __declspec(dllexport) void MostCorrelatedFeature(SimpleAnomalyDetector* sad, const char* CSVfileName,  char** l, int size, const char* att, char* s) {
+extern "C" __declspec(dllexport) void MostCorrelatedFeatureAlgo1(SimpleAnomalyDetector* sad, const char* CSVfileName,  char** l, int size, const char* att, char* s) {
     return sad->mostCorrelatedFeature(CSVfileName,l,size, att, s);
 }
 
-extern "C" __declspec(dllexport) void getTimeSteps(SimpleAnomalyDetector * sad, const char* CSVfileName, char** l, int size, const char* oneway, const char* otherway, char* f) {
+extern "C" __declspec(dllexport) void getTimeStepsAlgo1(SimpleAnomalyDetector * sad, const char* CSVfileName, char** l, int size, const char* oneway, const char* otherway, char* f) {
     return sad->getAnomalyTimeSteps(CSVfileName, l, size, oneway, otherway, f);
 }
 
 
-
-extern "C" _declspec(dllexport) void Analysis_AlgorithmType(SimpleAnomalyDetector* sad, char* buffer) {
-    return sad->trying(buffer);
-}
