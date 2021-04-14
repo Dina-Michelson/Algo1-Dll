@@ -32,57 +32,45 @@ float var(float* x, int size) {
 }
 
 float cov(float* x, float* y, int size) {
-	float avX = average(x, size);
-	float avY = average(y, size);
-	float sigma = 0.0;
-	for (int i = size - 1; i > -1; i--) {
-		sigma += (x[i] - avX) * (y[i] - avY);
+	float sum = 0;
+	for (int i = 0; i < size; i++) {
+		sum += x[i] * y[i];
 	}
-	return sigma / size;
+	sum /= size;
+
+	return sum - average(x, size) * average(y, size);
 }
 
 float pearson(float* x, float* y, int size) {
-	float sqrtVarX = sqrt(var(x, size));
-	float sqrtVarY = sqrt(var(y, size));
-	float pear = cov(x, y, size) / (sqrtVarX * sqrtVarY);
-	return pear;
+	return cov(x, y, size) / (sqrt(var(x, size)) * sqrt(var(y, size)));
 }
 
+
+
 Line linear_reg(Point** points, int size) {
-	//creating 2 seperate arrays for the x and y coordinates
 	float* x = (float*)std::malloc(size * sizeof(float));
 	assert(x != NULL);
 	float* y = (float*)std::malloc(size * sizeof(float));
 	assert(y != NULL);
-	//loop for creating seperate arrays
-	for (int i = size - 1; i > -1; i--) {
-		Point p = *points[i];
-		x[i] = p.x;
-		y[i] = p.y;
-	}
-	float a = cov(x, y, size) / var(x, size);
-	float avX = average(x, size);
-	float avY = average(y, size);
-	float b = avY - (a * avX);
-	Line l(a, b);
-
-	//freeing the allocated memory to avoid memory leak
-	free(x);
-	free(y);
-	return l;
-}
-
-/*Line linear_reg(Point** points, int size) {
-	float x[size], y[size];
 	for (int i = 0; i < size; i++) {
 		x[i] = points[i]->x;
 		y[i] = points[i]->y;
 	}
-	float a = cov(x, y, size) / var(x, size);
-	float b = average(y, size) - a * (average(x, size));
-
+	float a;
+	float b;
+	float vari = var(x, size);
+	if (abs(vari - 0)< 0.0000001) {
+		a = 0;
+		b = 0;
+	}
+	else {
+		a = cov(x, y, size) / var(x, size);
+		b = average(y, size) - a * (average(x, size));
+	}
+	free(x);
+	free(y);
 	return Line(a, b);
-}*/
+}
 
 float dev(Point p, Point** points, int size) {
 	//calculating the difference in y's between the point and the line

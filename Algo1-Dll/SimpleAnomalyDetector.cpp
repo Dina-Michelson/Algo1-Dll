@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
+
 
 using namespace std;
 SimpleAnomalyDetector::SimpleAnomalyDetector() {
@@ -132,7 +134,7 @@ vector<Point*> SimpleAnomalyDetector::floatsToPoints(vector <float> x, vector <f
 }
 
 void SimpleAnomalyDetector::learnHelper(const TimeSeries& ts, float p/*pearson*/, string f1, string f2, Point** ps) {
-	if (p > threshold) {
+	
 		size_t len = ts.getRowSize();
 		correlatedFeatures c;
 		c.feature1 = f1;
@@ -141,7 +143,7 @@ void SimpleAnomalyDetector::learnHelper(const TimeSeries& ts, float p/*pearson*/
 		c.lin_reg = linear_reg(ps, len);
 		c.threshold = findThreshold(ps, len, c.lin_reg) * 1.1; // 10% increase
 		cf.push_back(c);
-	}
+	
 }
 
 vector<AnomalyReport> SimpleAnomalyDetector::detect(const TimeSeries& ts) {
@@ -180,65 +182,141 @@ void SimpleAnomalyDetector::mostCorrelatedFeature(const char* CSVfileName, char*
             s[cf[i].feature2.size()] = '\0';
             return;
         }
-        char* temp2;
-        temp2 = &cf[i].feature2[0];
-        if (!strcmp(temp2, att)) {
-            //word = &cf[i].feature1[0];
-            std::copy(cf[i].feature1.begin(), cf[i].feature1.end(), s);
-            s[cf[i].feature1.size()] = '\0';
-            return;
-        }
         else {
             continue;
         }
     }
+    s[0] = ' ';
+    s[1] = '\0';
 }
 
 
-void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** l, int size, const char* oneWay, const char* otherWay, char* f) {
+/*void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** l, int size, const char* oneWay, char* f, char* f2) {
     TimeSeries newTs(CSVfileName, l, size);
     vector< AnomalyReport> ar = detect(newTs);
-    vector<float> floatVector;
+    int size2 = ar.size();
+    vector<int> floatVector;
+    int arSize = ar.size();
+    string temperary;
+    string temperary2;
+    for (int i = 0; i < arSize; i++) {
+        char* temp;
+        temp = &ar[i].description[0];
+        if (!strcmp(temp, oneWay)) {
+            floatVector.push_back(ar[i].timeStep);
+        }
+    }
+    
+    if (floatVector.size() != 0) {
+        int k = 0;
+        for (int j = 0; j < floatVector.size(); j++) {
+            if (temperary.length() < 507) {
+                int temp1 = floatVector[j];
+                string temp(to_string(temp1));
+                temperary += temp;
+                temperary += ' ';
+            }
+            else {
+                int temp2 = floatVector[j];
+                string temp3(to_string(temp2));
+                temperary2 += temp3;
+                temperary2 += ' ';
+            }
+        }
+        cout << temperary << endl;
+        cout << temperary2 << endl;
+    }
+    
+    else {
+        string ns = "no timesteps";
+        std::copy(ns.begin(), ns.end(), f);
+        f[ns.size()] = '\0';
+        std::copy(ns.begin(), ns.end(), f2);
+        f2[ns.size()] = '\0';
+        return;
+    }
+    
+    std::copy(temperary.begin(), temperary.end(), f);
+    f[temperary.size()-1] = '\0';
+    std::copy(temperary2.begin(), temperary2.end(), f2);
+    f2[temperary2.size() - 1] = '\0';
+    
+    return;
+}*/
+
+void SimpleAnomalyDetector::getAnomalyTimeSteps(const char* CSVfileName, char** l, int size, const char* oneWay, char* f) {
+    TimeSeries newTs(CSVfileName, l, size);
+    vector< AnomalyReport> ar = detect(newTs);
+    int size2 = ar.size();
+    vector<int> floatVector;
     int arSize = ar.size();
     string temperary;
     for (int i = 0; i < arSize; i++) {
         char* temp;
         temp = &ar[i].description[0];
-        if (!strcmp(temp, oneWay) || !strcmp(temp, otherWay)) {
+        if (!strcmp(temp, oneWay)) {
             floatVector.push_back(ar[i].timeStep);
         }
     }
+
     if (floatVector.size() != 0) {
-        int k = 0;
         for (int j = 0; j < floatVector.size(); j++) {
-            float temp1 = floatVector[j];
-            string temp(to_string(temp1));
-            temperary += temp;
-            temperary += ' ';
-        }
+                int temp1 = floatVector[j];
+                string temp(to_string(temp1));
+                temperary += temp;
+                temperary += ' ';
+        } 
     }
     else {
         string ns = "no timesteps";
         std::copy(ns.begin(), ns.end(), f);
         f[ns.size()] = '\0';
-        return;
     }
     std::copy(temperary.begin(), temperary.end(), f);
-    //f = &temperary[0];
-    f[temperary.size()-1] = '\0';
+    f[temperary.size() - 1] = '\0';
     return;
 }
 
-extern "C" _declspec(dllexport) void* CreateSADAlgo1() {
+int SimpleAnomalyDetector::getAnomalyTimeStepsSize(const char* CSVfileName, char** allAtts, int numAtts, const char* atts) {
+    TimeSeries newTs(CSVfileName, allAtts, numAtts);
+    vector< AnomalyReport> anomalies = detect(newTs);
+    int numAnomalies = anomalies.size();
+    vector<int> timesteps;
+    for (int i = 0; i < numAnomalies; i++) {
+        char* currAtts = &anomalies[i].description[0];
+        if (!strcmp(currAtts, atts)) {
+            timesteps.push_back(anomalies[i].timeStep);
+        }
+    }
+
+    int numChars = 0;
+    if (!timesteps.empty()) {
+        for (int j = 0; j < timesteps.size(); j++) {
+            int currTimestep = timesteps[j];
+            numChars += currTimestep == 0 ? 1 : (int)(log10(currTimestep) + 1);
+            numChars++; // for space
+        }
+
+    }
+
+    return numChars;
+}
+
+
+extern "C" _declspec(dllexport) void* CreateSAD() {
     return (void*) new SimpleAnomalyDetector();
 }
 
-extern "C" __declspec(dllexport) void MostCorrelatedFeatureAlgo1(SimpleAnomalyDetector* sad, const char* CSVfileName,  char** l, int size, const char* att, char* s) {
+extern "C" __declspec(dllexport) void MostCorrelatedFeature(SimpleAnomalyDetector* sad, const char* CSVfileName,  char** l, int size, const char* att, char* s) {
     return sad->mostCorrelatedFeature(CSVfileName,l,size, att, s);
 }
 
-extern "C" __declspec(dllexport) void getTimeStepsAlgo1(SimpleAnomalyDetector * sad, const char* CSVfileName, char** l, int size, const char* oneway, const char* otherway, char* f) {
-    return sad->getAnomalyTimeSteps(CSVfileName, l, size, oneway, otherway, f);
+extern "C" __declspec(dllexport) void getTimeSteps(SimpleAnomalyDetector * sad, const char* CSVfileName, char** l, int size, const char* oneway, char* f) {
+    return sad->getAnomalyTimeSteps(CSVfileName, l, size, oneway,  f);
+}
+
+extern "C" __declspec(dllexport) int getTimeStepsSize(SimpleAnomalyDetector * sad, const char* CSVfileName, char** allAtts, int numAtts, const char* atts) {
+    return sad->getAnomalyTimeStepsSize(CSVfileName, allAtts, numAtts, atts);
 }
 
 
